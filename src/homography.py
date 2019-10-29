@@ -6,6 +6,7 @@ from typing import Tuple, List, Sequence, Union, Any
 class ComputeHomography:
     def __init__(self, matcher: cv2.DescriptorMatcher):
         self.matcher = matcher
+        self.matches = None
 
     def _find_homography(self,
                         kp_frame: List[cv2.KeyPoint], 
@@ -23,9 +24,9 @@ class ComputeHomography:
                 des_marker: List[cv2.DMatch]) -> np.ndarray:
         
         if isinstance(self.matcher, (cv2.FlannBasedMatcher)):
-            matches = self.matcher.knnMatch(des_marker, des_frame, k=2)
+            self.matches = self.matcher.knnMatch(des_marker, des_frame, k=2)
         else:
-            matches = self.matcher.match(des_marker, des_frame)
-        matches = sorted(matches, key=lambda x: x.distance)
-        homography = self._find_homography(kp_frame, kp_marker, matches)
+            self.matches = self.matcher.match(des_marker, des_frame)
+        self.matches = sorted(self.matches, key=lambda x: x.distance)
+        homography = self._find_homography(kp_frame, kp_marker, self.matches)
         return homography

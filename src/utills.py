@@ -15,9 +15,6 @@ def draw_corner(frame: np.ndarray, marker_shape: List[int],
     return frame
 
 
-
-
-
 def projection_matrix(camera_parameters, homography):
     """
     From the camera calibration matrix and the estimated homography
@@ -46,6 +43,7 @@ def projection_matrix(camera_parameters, homography):
     return np.dot(camera_parameters, projection)
 
 
+
 def hex_to_rgb(hex_color: str) -> Sequence[int]:
     """
     Helper function to convert hex strings to RGB
@@ -59,7 +57,7 @@ def render(img: np.ndarray, obj: OBJ, projection: np.ndarray,
            marker_shape: List[int], 
            color: Union[bool, Sequence[int]]=False) -> np.ndarray:
     vertices = obj.vertices
-    scale_matrix = np.eye(3) * 3
+    scale_matrix = np.eye(3) * 1/3
     h, w = marker_shape
 
     tmp_image = np.zeros_like(img)

@@ -12,9 +12,9 @@ class MakeDescriptor:
         self.detector = feature_detector
         marker = cv2.imread(marker_path)
         self.marker = cv2.resize(marker, (w, h))
-        kp_marker = self.detector.detect(self.marker)
-        kp_des = self.detector.compute(self.marker, kp_marker)
-
+        # kp_marker = self.detector.detect(self.marker)
+        # kp_des = self.detector.compute(self.marker, kp_marker)
+        kp_des = self.detector.detectAndCompute(self.marker, None)
         self.kp_marker = kp_des[0]
         self.des_marker = kp_des[1]
 
