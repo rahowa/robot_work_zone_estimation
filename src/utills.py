@@ -53,15 +53,18 @@ def hex_to_rgb(hex_color: str) -> Sequence[int]:
     return tuple(int(hex_color[i:i + h_len // 3], 16) for i in range(0, h_len, h_len // 3))
 
 
-def render(img: np.ndarray, obj: OBJ, projection: np.ndarray,
+def render(img: np.ndarray, 
+           obj: OBJ,
+           scale_factor: float,
+           projection: np.ndarray,
            marker_shape: List[int], 
            color: Union[bool, Sequence[int]]=False) -> np.ndarray:
     vertices = obj.vertices
-    scale_matrix = np.eye(3) * 1/3
+    scale_matrix = np.eye(3) * scale_factor
     h, w = marker_shape
 
     tmp_image = np.zeros_like(img)
-
+    
     for face in obj.faces:
         face_vertices = face[0]
         points = np.array([vertices[vertex - 1] for vertex in face_vertices])
@@ -69,6 +72,7 @@ def render(img: np.ndarray, obj: OBJ, projection: np.ndarray,
         # render model in the middle of the reference surface. To do so,
         # model points must be displaced
         points = np.array([[p[0] + w / 2, p[1] + h / 2, p[2]] for p in points])
+        # print(points)
         dst = cv2.perspectiveTransform(points.reshape(-1, 1, 3), projection)
         imgpts = np.int32(dst)
         if color is False:
