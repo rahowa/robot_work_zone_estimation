@@ -3,11 +3,11 @@ import cv2
 import numpy as np
 from typing import Tuple, List, Sequence, Union
 
-from obj_loader import OBJ
+from .obj_loader import OBJ
+
 
 def draw_corner(frame: np.ndarray, marker_shape: List[int],
                 homography: np.ndarray) -> np.ndarray:
-    # h, w = marker.shape[:2]
     h, w = marker_shape
     pts = np.float32([[0, 0], [0, h-1], [w-1, h-1], [w-1, 0]]).reshape(-1, 1, 2)
     dst = cv2.perspectiveTransform(pts, homography)
@@ -58,7 +58,7 @@ def render(img: np.ndarray,
            scale_factor: float,
            projection: np.ndarray,
            marker_shape: List[int], 
-           color: Union[bool, Sequence[int]]=False) -> np.ndarray:
+           color: Union[bool, Sequence[int]] = False) -> np.ndarray:
     vertices = obj.vertices
     scale_matrix = np.eye(3) * scale_factor
     h, w = marker_shape
