@@ -1,9 +1,11 @@
 from collections import deque
+from dataclasses import dataclass
+from typing import List, Tuple
+
 import numpy as np 
+from nptyping import Array
 from numpy.linalg import inv 
 import matplotlib.pyplot as plt 
-from dataclasses import dataclass
-from typing import List
 
 
 @dataclass
@@ -41,17 +43,17 @@ class KalmanFilter(object):
                                               est_errors.y_coord,
                                               est_errors.v_x,
                                               est_errors.v_y)
-        self.history = deque(maxlen=100)
+        self.history: List[Tuple[float, float]] = list()
         self.prev_state = np.zeros((4, 1))
 
-    def update_speed(self, history: List[float]):
+    def update_speed(self, history: List[Tuple[float, float]]):
         if len(history) > self.min_n_of_samples:
             history = np.array(self.history)
             speed = (history[1:, :] - history[:-1, :]).mean(0)
             self.speed_x = speed[0]
             self.speed_y = speed[1]
 
-    def update_acceleration(self, history: List[float]):
+    def update_acceleration(self, history: List[Tuple[float, float]]):
         if len(history) > self.min_n_of_samples:
             history = np.array(self.history)
             speed = (history[1:, :] - history[:-1, :])
@@ -67,7 +69,7 @@ class KalmanFilter(object):
         ])
         return np.diag(np.diag(cov_matrix))
 
-    def predict(self, x: int, y: int, v_x: int, v_y: int) -> np.ndarray:
+    def predict(self, x: float, y: float, v_x: float, v_y: float) -> Array[float]:
         if len(self.history) >= self.min_n_of_samples:
             X = np.array([
                 [x],
@@ -78,14 +80,12 @@ class KalmanFilter(object):
             result = self.transition_matrix_A.dot(X)
             result += self.transition_matrix_B.dot(self.acceleration)
         else:
-            result =  np.array([[x],[y],[v_x],[v_y]])
+            result =  np.array([[x], [y], [v_x], [v_y]])
         return result
 
-    def update(self, new_x: int, new_y: int, X_: np.ndarray) -> np.ndarray:
+    def update(self, new_x: float, new_y: float, X_: Array[float]) -> Array[float]:
         self.covariance_est = np.diag(
-            np.diag(
-                self.transition_matrix_A.dot(self.covariance_est).dot(self.transition_matrix_A.T)
-                )
+            np.diag(self.transition_matrix_A.dot(self.covariance_est).dot(self.transition_matrix_A.T))
             )
         # Calculating the Kalman Gain
         H = np.identity(self.transition_matrix_A.shape[1])
@@ -108,8 +108,8 @@ class KalmanFilter(object):
         self.covariance_est = (np.identity(len(K)) - K.dot(H)).dot(self.covariance_est)
         return X_
 
-    def step(self, new_x, new_y):
-        self.history.append([new_x, new_y])
+    def step(self, new_x: float, new_y: float):
+        self.history.append((new_x, new_y))
         self.update_speed(self.history)
         X_pred = self.predict(self.prev_state[0][0], self.prev_state[1][0], 
                               self.prev_state[2][0], self.prev_state[3][0])
