@@ -127,7 +127,14 @@ def load_camera_params(path: str) -> CameraParams:
                         np.array(params['translation_vec']))
 
 
-# def undistort_frame()
+def undistort_frame(frame: Array[int, CAM_WIDTH, CAM_HEIGHT],
+                    params: CameraParams) -> Array[int, CAM_WIDTH, CAM_HEIGHT]:
+    h,  w = frame.shape[:2]
+    newcameramtx, _ = cv2.getOptimalNewCameraMatrix(params.camera_mtx,
+                                                      params.distortion_vec,
+                                                      (w,h), 1, (w,h))
+    return cv2.undistort(frame, params.camera_mtx, params.distortion_vec, None, newcameramtx)
+
 
 def main(args: Namespace) -> None:
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
