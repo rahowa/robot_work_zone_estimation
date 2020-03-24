@@ -1,13 +1,14 @@
 import math
 import cv2 
 import numpy as np
+from nptyping import Array
 from typing import Tuple, List, Sequence, Union
 
 from .obj_loader import OBJ
 
 
-def draw_corner(frame: np.ndarray, marker_shape: List[int],
-                homography: np.ndarray) -> np.ndarray:
+def draw_corner(frame: Array[int], marker_shape: List[int],
+                homography: Array[float]) -> Array[int]:
     h, w = marker_shape
     pts = np.float32([[0, 0], [0, h-1], [w-1, h-1], [w-1, 0]]).reshape(-1, 1, 2)
     dst = cv2.perspectiveTransform(pts, homography)
@@ -15,7 +16,7 @@ def draw_corner(frame: np.ndarray, marker_shape: List[int],
     return frame
 
 
-def projection_matrix(camera_parameters, homography):
+def projection_matrix(camera_parameters: Array[float], homography: Array[float]) -> Array[float]:
     """
     From the camera calibration matrix and the estimated homography
     compute the 3D projection matrix
@@ -53,12 +54,12 @@ def hex_to_rgb(hex_color: str) -> Sequence[int]:
     return tuple(int(hex_color[i:i + h_len // 3], 16) for i in range(0, h_len, h_len // 3))
 
 
-def render(img: np.ndarray, 
+def render(img: Array[int], 
            obj: OBJ,
            scale_factor: float,
-           projection: np.ndarray,
+           projection: Array[float],
            marker_shape: List[int], 
-           color: Union[bool, Sequence[int]] = False) -> np.ndarray:
+           color: Union[bool, Sequence[int]] = False) -> Array[int]:
     vertices = obj.vertices
     scale_matrix = np.eye(3) * scale_factor
     h, w = marker_shape
