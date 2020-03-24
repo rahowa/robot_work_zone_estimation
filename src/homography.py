@@ -2,12 +2,12 @@ import math
 import cv2 
 import numpy as np
 from nptyping import Array
-from typing import Tuple, List, Sequence, Union, Any
+from typing import List, Any
 
 class ComputeHomography:
     def __init__(self, matcher: cv2.DescriptorMatcher):
         self.matcher = matcher
-        self.matches = None
+        self.matches: List[cv2.DMatch] = list()
 
     def _find_homography(self,
                         kp_frame: List[cv2.KeyPoint], 
@@ -19,7 +19,7 @@ class ComputeHomography:
         return M
 
     def __call__(self, 
-                kp_frame: List[cv2.KeyPoint], 
+                kp_frame: List[cv2.KeyPoint],   
                 kp_marker: List[cv2.KeyPoint],
                 des_frame: List[cv2.DMatch],
                 des_marker: List[cv2.DMatch]) -> Array[float]:
