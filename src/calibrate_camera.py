@@ -1,13 +1,15 @@
+from configure import params
 import os
+import json
 import typing as t
 from glob import glob
+from nptyping import Array
 from dataclasses import dataclass
 from argparse import ArgumentParser, Namespace
 
 import cv2
 import numpy as np
 from tqdm import tqdm
-
 
 CAM_WIDTH = 640
 CAM_HEIGHT = 480
@@ -26,10 +28,10 @@ class CalibrationParams:
 
 @dataclass
 class CameraParams:
-    camera_mtx: np.ndarray
-    distortion_vec: np.ndarray
-    rotation_vec: np.ndarray
-    translation_vec: np.ndarray
+    camera_mtx: Array[float]
+    distortion_vec: Array[float]
+    rotation_vec: Array[float]
+    translation_vec: Array[float]
 
 
 def collect_calibration_images(num_pictures: int,
@@ -104,6 +106,28 @@ def print_camera_params(camera_params: CameraParams) -> None:
     print(f"Translation vector: {camera_params.translation_vec}")
     print(("=" * 79).center(79))
 
+
+def save_camera_params(params: CameraParams, path: str) -> None:
+    params_dict = {
+        "camera_mtx": params.camera_mtx.tolist(),
+        "distortion_vec": params.distortion_vec.tolist(),
+        "rotation_vec": params.rotation_vec.tolist(),
+        "translation_vec": params.translation_vec.tolist()
+    }
+    with open(path, 'w') as save_file:
+        json.dump(params_dict, save_file)
+
+
+def load_camera_params(path: str) -> CameraParams:
+    with open(path, "r") as params_file:
+        params = json.load(params_file)
+    return CameraParams(np.array(params['camera_mtx']),
+                        np.array(params['distortion_vec']),
+                        np.array(params['rotation_vec']),
+                        np.array(params['translation_vec']))
+
+
+# def undistort_frame()
 
 def main(args: Namespace) -> None:
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
