@@ -1,15 +1,14 @@
-import math
-import cv2 
-import numpy as np
+import cv2
 from nptyping import Array
-from typing import Tuple, List, Sequence, Union, Any
+from typing import Tuple, List
+
 
 class MakeDescriptor:
     def __init__(self, 
-                feature_detector: cv2.Feature2D, 
-                marker_path: str,
-                w: int = 512,
-                h: int = 512):
+                 feature_detector: cv2.Feature2D,
+                 marker_path: str,
+                 w: int = 512,
+                 h: int = 512):
         self.detector = feature_detector
         marker = cv2.imread(marker_path)
         self.marker = cv2.resize(marker, (w, h))
