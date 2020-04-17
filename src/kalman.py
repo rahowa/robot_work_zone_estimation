@@ -80,7 +80,7 @@ class KalmanFilter(object):
             result = self.transition_matrix_A.dot(X)
             result += self.transition_matrix_B.dot(self.acceleration)
         else:
-            result =  np.array([[x], [y], [v_x], [v_y]])
+            result = np.array([[x], [y], [v_x], [v_y]])
         return result
 
     def update(self, new_x: float, new_y: float, X_: Array[float]) -> Array[float]:
@@ -135,14 +135,13 @@ def main():
     y_filtered = [y_observations[0]]
 
     kf = KalmanFilter(observation_errors, estimation_errors, False)
-    for timestep in range(1, x_observations.shape[0]-1):
-        new_x = x_observations[timestep]
-        new_y = y_observations[timestep]
+    for timestamp in range(1, x_observations.shape[0]-1):
+        new_x = x_observations[timestamp]
+        new_y = y_observations[timestamp]
         result = kf.step(new_x, new_y)
         x_filtered.append(result[0][0])
         y_filtered.append(result[1][0])
         print(result, result.shape, kf.acceleration)
-
 
     plt.style.use("ggplot")
     plt.plot(np.arange(0, 1000, 10), np.sin(np.arange(0, 1000, 10)/10),
