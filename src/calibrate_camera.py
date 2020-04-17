@@ -1,7 +1,7 @@
 from configure import params
 import os
 import json
-import typing as t
+from typing import Tuple
 from glob import glob
 from nptyping import Array
 from dataclasses import dataclass
@@ -21,9 +21,9 @@ class CalibrationParams:
     cam_width: int
     chessboard_height: int
     chessboard_width: int
-    criteria: t.Tuple[int, int, float]
-    cam_shape: t.Tuple[int, int]
-    chessboard_shape: t.Tuple[int, int]
+    criteria: Tuple[int, int, float]
+    cam_shape: Tuple[int, int]
+    chessboard_shape: Tuple[int, int]
 
 
 @dataclass
@@ -121,10 +121,10 @@ def save_camera_params(params: CameraParams, path: str) -> None:
 def load_camera_params(path: str) -> CameraParams:
     with open(path, "r") as params_file:
         params = json.load(params_file)
-    return CameraParams(np.array(params['camera_mtx']),
-                        np.array(params['distortion_vec']),
-                        np.array(params['rotation_vec']),
-                        np.array(params['translation_vec']))
+    return CameraParams(np.array(params['camera_mtx'], dtype=np.float),
+                        np.array(params['distortion_vec'], dtype=np.float),
+                        np.array(params['rotation_vec'], dtype=np.float),
+                        np.array(params['translation_vec'], dtype=np.float))
 
 
 def undistort_frame(frame: Array[int, CAM_WIDTH, CAM_HEIGHT],
@@ -134,7 +134,7 @@ def undistort_frame(frame: Array[int, CAM_WIDTH, CAM_HEIGHT],
                                                       params.distortion_vec,
                                                       (w,h), 1, (w,h))
     return cv2.undistort(frame, params.camera_mtx, params.distortion_vec, None, newcameramtx)
-
+    
 
 def main(args: Namespace) -> None:
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
