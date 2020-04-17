@@ -2,7 +2,7 @@ import math
 import cv2 
 import numpy as np
 from nptyping import Array
-from typing import Tuple, List, Sequence, Union
+from typing import List, Sequence, Union
 
 from .obj_loader import OBJ
 
@@ -12,8 +12,7 @@ def draw_corner(frame: Array[int], marker_shape: List[int],
     h, w = marker_shape
     pts = np.float32([[0, 0], [0, h-1], [w-1, h-1], [w-1, 0]]).reshape(-1, 1, 2)
     dst = cv2.perspectiveTransform(pts, homography)
-    frame = cv2.polylines(frame, [np.int32(dst)], True, 255 , 3, cv2.LINE_AA)
-    return frame
+    return cv2.polylines(frame, [np.int32(dst)], True, 255, 3, cv2.LINE_AA)
 
 
 def projection_matrix(camera_parameters: Array[float], homography: Array[float]) -> Array[float]:
@@ -42,7 +41,6 @@ def projection_matrix(camera_parameters: Array[float], homography: Array[float])
     # finally, compute the 3D projection matrix from the model to the current frame
     projection = np.stack((rot_1, rot_2, rot_3, translation)).T
     return np.dot(camera_parameters, projection)
-
 
 
 def hex_to_rgb(hex_color: str) -> Sequence[int]:
