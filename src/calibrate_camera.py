@@ -1,4 +1,5 @@
-from configure import params
+# from configure import params
+from multiprocessing.queues import Queue
 import os
 import json
 from typing import Tuple
@@ -92,7 +93,7 @@ def find_camera_params(path: str, params: CalibrationParams) -> CameraParams:
                                                      img_points,
                                                      params.cam_shape,
                                                      None, None)
-    return CameraParams(mtx, dist, rvecs, tvecs)
+    return CameraParams(np.array(mtx), np.array(dist), np.array(rvecs), np.array(tvecs))
 
 
 def print_camera_params(camera_params: CameraParams) -> None:
@@ -136,7 +137,26 @@ def undistort_frame(frame: Array[int, CAM_WIDTH, CAM_HEIGHT],
     return cv2.undistort(frame, params.camera_mtx, params.distortion_vec, None, newcameramtx)
     
 
-def main(args: Namespace) -> None:
+
+def calibrate_camera(path_to_images: str,
+                    frame_height: int,
+                    frame_width: int, 
+                    board_height: int, 
+                    board_width: int) -> CameraParams:
+    criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 300, 0.0005)
+    calibration_params = CalibrationParams(frame_height,
+                                           frame_width,
+                                           board_height,
+                                           board_width,
+                                           criteria,
+                                           (frame_height, frame_width),
+                                           (board_height, board_width)
+                                            )
+    all_camera_params = find_camera_params(path_to_images, calibration_params)
+    return all_camera_params
+
+
+def main_calibration(args: Namespace) -> None:
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
     calibration_params = CalibrationParams(CAM_HEIGHT,
                                            CAM_WIDTH,
@@ -160,4 +180,4 @@ if __name__ == "__main__":
     parser.add_argument("--h", default=9, type=int)
     args = parser.parse_args()
 
-    main(args)
+    main_calibration(args)
