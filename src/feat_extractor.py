@@ -1,6 +1,7 @@
+from argparse import ArgumentError
 import cv2
 from nptyping import Array
-from typing import Tuple, List, Callable, Sequence
+from typing import Tuple, List, Callable, Union
 from src.utills import mask_from_contours
 import numpy as np
 
@@ -8,14 +9,21 @@ import numpy as np
 class MakeDescriptor:
     def __init__(self, 
                  feature_detector: cv2.Feature2D,
-                 marker_path: str,
+                 marker: Union[str, Array[np.uint8]],
                  w: int = 512,
                  h: int = 512,
                  img_processing: Callable = None):
         self.detector = feature_detector
-        marker = cv2.imread(marker_path)
-        wh_ratio = marker.shape[1]/marker.shape[0]
-        self.marker = cv2.resize(marker, (int(w * wh_ratio), h))
+
+        if isinstance(marker, str):
+            loaded_marker = cv2.imread(marker)
+            wh_ratio = loaded_marker.shape[1]/loaded_marker.shape[0]
+            self.marker = cv2.resize(loaded_marker, (int(w * wh_ratio), h))
+        elif isinstance(marker, Array[np.uint8]):
+            self.marker = marker
+        else:
+            raise ArgumentError 
+
 
         if img_processing is not None:
             self.marker = img_processing(self.marker)
