@@ -1,11 +1,6 @@
 import cv2
 import numpy as np
 
-# def find_cosine(point_low, point_middle, point_high):
-#     vec1 = np.array([point_low, point_middle])
-#     vec2 = np.array([point_middle, point_high])
-#     return np.dot(vec1, vec2)/np.linalg.norm(vec1)/np.linalg.norm(vec2)
-
 
 def find_cosine(point_b, point_c, point_a):
     x, y = 0, 1
