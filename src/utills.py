@@ -2,7 +2,8 @@ import math
 import cv2
 import numpy as np
 from nptyping import Array
-from typing import Callable, Callable, List, Optional, Sequence, Union, Tuple
+from typing import List, Optional, Sequence, Union, Tuple
+
 from .obj_loader import OBJ
 
 

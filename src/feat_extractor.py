@@ -2,7 +2,6 @@ from argparse import ArgumentError
 import cv2
 from nptyping import Array
 from typing import Tuple, List, Callable, Union
-from src.utills import mask_from_contours
 import numpy as np
 
 

@@ -19,7 +19,7 @@ from src.utills import (projection_matrix, render,
                         draw_corner, compute_corner, CounterFilter,
                         mask_from_contours)
 from src.find_squares import SquareFinder
-from src.calibrate_camera import CameraParams, calibrate_camera_mp, save_camera_params, load_camera_params
+from src.calibrate_camera import save_camera_params, load_camera_params
 
 
 def save_config(config_name: str, params: Dict[str, Any]) -> None:
