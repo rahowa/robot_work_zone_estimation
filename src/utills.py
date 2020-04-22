@@ -1,18 +1,30 @@
 import math
-import cv2 
+import cv2
 import numpy as np
 from nptyping import Array
-from typing import List, Sequence, Union
-
+from typing import List, Sequence, Union, Tuple
+# from src.kalman import KalmanFilter
 from .obj_loader import OBJ
 
 
-def draw_corner(frame: Array[int], marker_shape: List[int],
-                homography: Array[float]) -> Array[int]:
+# def compute_corner(marker_shape: Tuple[int, int], homography: Array[float], filter: KalmanFilter = None) -> Array[Tuple[int, int], 4]:
+#     h, w = marker_shape
+#     pts = np.float32([[0, 0], [0, h - 1], [w - 1, h - 1], [w - 1, 0]]).reshape(-1, 1, 2)
+#
+#     if filter is None:
+#         return cv2.perspectiveTransform(pts, homography).astype(np.int)
+#     else:
+#         dst = cv2.perspectiveTransform(pts, homography).astype(np.int)
+#         filter.predict(dst)
+
+def compute_corner(marker_shape: Tuple[int, int], homography: Array[float]) -> Array[Tuple[int, int]]:
     h, w = marker_shape
-    pts = np.float32([[0, 0], [0, h-1], [w-1, h-1], [w-1, 0]]).reshape(-1, 1, 2)
-    dst = cv2.perspectiveTransform(pts, homography)
-    return cv2.polylines(frame, [np.int32(dst)], True, 255, 3, cv2.LINE_AA)
+    pts = np.float32([[0, 0], [0, h - 1], [w - 1, h - 1], [w - 1, 0]]).reshape(-1, 1, 2)
+    return cv2.perspectiveTransform(pts, homography).astype(np.uint)
+
+
+def draw_corner(frame: Array[int], corner: Array[Tuple[int, int]]) -> Array[int]:
+    return cv2.polylines(frame, [np.int32(corner)], True, 255, 3, cv2.LINE_AA)
 
 
 def projection_matrix(camera_parameters: Array[float], homography: Array[float]) -> Array[float]:
@@ -52,18 +64,17 @@ def hex_to_rgb(hex_color: str) -> Sequence[int]:
     return tuple(int(hex_color[i:i + h_len // 3], 16) for i in range(0, h_len, h_len // 3))
 
 
-def render(img: Array[int], 
+def render(img: Array[int],
            obj: OBJ,
            scale_factor: float,
            projection: Array[float],
-           marker_shape: List[int], 
+           marker_shape: Tuple[int, int],
            color: Union[bool, Sequence[int]] = False) -> Array[int]:
     vertices = obj.vertices
     scale_matrix = np.eye(3) * scale_factor
     h, w = marker_shape
-
     tmp_image = np.zeros_like(img)
-    
+
     for face in obj.faces:
         face_vertices = face[0]
         points = np.array([vertices[vertex - 1] for vertex in face_vertices])
@@ -81,3 +92,9 @@ def render(img: Array[int],
             color = color[::-1] # reverse
             cv2.fillConvexPoly(tmp_image, imgpts, color)
     return np.uint8(np.where(tmp_image == 0, 1, 0.5) * img) + tmp_image//2
+
+
+def mask_from_contours(contours: Sequence[Tuple[int, int]], image: Array[int]) -> Array[int]:
+    mask = np.zeros(image.shape, dtype=np.uint8)
+    mask = cv2.drawContours(mask, contours, -1, 255, cv2.FILLED)
+    return mask.astype(np.uint8)
