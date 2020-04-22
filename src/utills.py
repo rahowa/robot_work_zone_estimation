@@ -2,20 +2,38 @@ import math
 import cv2
 import numpy as np
 from nptyping import Array
-from typing import List, Sequence, Union, Tuple
-# from src.kalman import KalmanFilter
+from typing import Callable, Callable, List, Optional, Sequence, Union, Tuple
 from .obj_loader import OBJ
 
 
-# def compute_corner(marker_shape: Tuple[int, int], homography: Array[float], filter: KalmanFilter = None) -> Array[Tuple[int, int], 4]:
-#     h, w = marker_shape
-#     pts = np.float32([[0, 0], [0, h - 1], [w - 1, h - 1], [w - 1, 0]]).reshape(-1, 1, 2)
-#
-#     if filter is None:
-#         return cv2.perspectiveTransform(pts, homography).astype(np.int)
-#     else:
-#         dst = cv2.perspectiveTransform(pts, homography).astype(np.int)
-#         filter.predict(dst)
+class CounterFilter:
+    """
+    Save last markers state for a 'max_losses' number of frames
+
+    Parameters
+    ----------
+        max_losses, int:
+            Number of frames to preserve corners
+    """
+
+    def __init__(self, max_losses: int = 10) -> None:
+        self.max_losses = max_losses
+        self.current_losses = 0
+        self.last_corners: Optional[List[Tuple[int, int]]] = None
+
+    def init(self, last_corners: List[Tuple[int, int]]):
+        if len(last_corners) > 0:
+            self.last_corners = last_corners
+            self.current_losses = 0
+
+    def get(self) -> List[Tuple[int, int]]:
+        if self.current_losses < self.max_losses and self.last_corners is not None: 
+            self.current_losses += 1
+            return self.last_corners
+        else:
+            return []
+
+
 
 def compute_corner(marker_shape: Tuple[int, int], homography: Array[float]) -> Array[Tuple[int, int]]:
     h, w = marker_shape
@@ -95,6 +113,8 @@ def render(img: Array[int],
 
 
 def mask_from_contours(contours: Sequence[Tuple[int, int]], image: Array[int]) -> Array[int]:
-    mask = np.zeros(image.shape, dtype=np.uint8)
-    mask = cv2.drawContours(mask, contours, -1, 255, cv2.FILLED)
+    mask = np.zeros(image.shape[:2], dtype=np.uint8)
+    # mask = cv2.drawContours(mask, contours, -1, 255, cv2.FILLED)
+    for cnt in contours:
+        mask = cv2.fillPoly(mask, [cnt], 255)
     return mask.astype(np.uint8)
