@@ -1,3 +1,5 @@
+from collections import Counter
+from dataclasses import make_dataclass
 import os
 import sys
 import json
@@ -14,10 +16,10 @@ from src.obj_loader import OBJ
 from src.homography import ComputeHomography
 from src.feat_extractor import MakeDescriptor
 from src.utills import (projection_matrix, render,
-                        draw_corner, compute_corner,
+                        draw_corner, compute_corner, CounterFilter,
                         mask_from_contours)
 from src.find_squares import SquareFinder
-from src.calibrate_camera import calibrate_camera_mp, save_camera_params, load_camera_params
+from src.calibrate_camera import CameraParams, calibrate_camera_mp, save_camera_params, load_camera_params
 
 
 def save_config(config_name: str, params: Dict[str, Any]) -> None:
@@ -112,32 +114,23 @@ def main() -> None:
     scale_factor_model = get_model_params()
     board_height, board_width, path_to_images, path_to_camera_params = get_calibration_params()
 
+    if os.path.isfile(path_to_camera_params):
+        camera_params = load_camera_params(path_to_camera_params)
+    else:
+        st.warning("Estimate camera params!")
+        st.warning("Press 'Calibrate camera' button")
+        camera_params = None
+
     if sb.button("Calibrate camera"):
-        if os.path.isfile(path_to_camera_params):
-            all_camera_params = load_camera_params(path_to_camera_params)
-        else:
-            st.write("Start camera calibration process")
-            criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
-            all_camera_params = calibrate_camera_mp(path_to_images, 
-                                                frame_height,
-                                                frame_width,
-                                                board_height,
-                                                board_width)
-            # queue = mp.Queue()
-            # process = mp.Process(target=calibrate_camera_mp,
-            #                      args=(path_to_images, frame_height,frame_width,board_height,board_width, queue))
-            # process.start()
-            # all_camera_params = queue.get()
-            # collect_calibration_images(args.n, args.path, calibration_params)
-            save_camera_params(all_camera_params, path_to_camera_params)
-        camera_params = all_camera_params.camera_mtx
+        st.write("Start camera calibration process")
+        camera_params = calibrate_camera_mp(path_to_images, 
+                                            frame_height,
+                                            frame_width,
+                                            board_height,
+                                            board_width)
+        save_camera_params(camera_params, path_to_camera_params)
         # process.join()
         st.write("Camera was calibarted")
-
-    else:
-        camera_params = np.array([[focal_length, 0, frame_width // 2],
-                            [0, focal_length, frame_height // 2],
-                            [0, 0, 1]])
 
     viewer = st.image(np.zeros((frame_height, frame_width, 3)))
 
@@ -168,66 +161,37 @@ def main() -> None:
         cap.release()
         exit(0)
 
-
-    obj = OBJ(full_path_to_obj, swapyz=True)
-    descriptor_params = dict(nfeatures=max_num_of_features,
-                             scaleFactor=scale_factor_feat_det,
-                             nlevels=num_of_levels,
-                             edgeThreshold=10,
-                             firstLevel=1)
-    homography_alg = ComputeHomography(cv2.BFMatcher_create(cv2.NORM_HAMMING, crossCheck=True))
-    column_descriptor = MakeDescriptor(cv2.ORB_create(**descriptor_params),
-                                       full_path_to_marker,
-                                       marker_size,
-                                       marker_size,
-                                       None)
-    kp_marker, des_marker = column_descriptor.get_marker_data()
-    frame_counter = 0
-    square_finder = SquareFinder(0.25, 100.0)
-
+    prev_corners = None
+    dictionary = cv2.aruco.Dictionary_get(cv2.aruco.DICT_7X7_1000)
+    parameters =  cv2.aruco.DetectorParameters_create()
+    prev_corners = None
+    counter_filter = CounterFilter(10)
     while True:
         ret, scene = cap.read()
         if not ret:
             break
-        frame_counter += 1
-        # #
-        # if frame_counter == cap.get(cv2.CAP_PROP_FRAME_COUNT):
-        #     frame_counter = 0
-        #     cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
-        dictionary = cv2.aruco.Dictionary_get(cv2.aruco.DICT_6X6_1000)
-        parameters =  cv2.aruco.DetectorParameters_create()
+
         gray_scene = cv2.cvtColor(scene.copy(), cv2.COLOR_BGR2GRAY)
-
-        marker_corners, marker_ids, rejected_candidates = cv2.aruco.detectMarkers(gray_scene, dictionary, parameters=parameters)
-        scene = cv2.aruco.drawDetectedMarkers(scene.copy(), marker_corners, marker_ids)
-        cv2.imwrite("marker.png", cv2.aruco.drawMarker(dictionary, 23, 200, 1))
+        marker_corners, marker_ids, _ = cv2.aruco.detectMarkers(gray_scene, dictionary, parameters=parameters)
         
-        bit_scene = preprocess_image(scene.copy())
-        squares = square_finder(bit_scene)
-        mask = mask_from_contours(squares, bit_scene)
-        if mask.sum() > 10:
-            mask = (mask / 255).astype("uint8")
-            gray_scene = cv2.cvtColor(scene, cv2.COLOR_BGR2GRAY)
-            kp_scene, des_scene = column_descriptor.get_frame_data(gray_scene, None)
-        else:
-            kp_scene, des_scene = None, None
-        if des_marker is not None and des_scene is not None:
-            homography = homography_alg(kp_scene, kp_marker, des_scene, des_marker)
-
-            if homography is not None:
-                corner = compute_corner(column_descriptor.get_marker_size(), homography)
-                scene = draw_corner(scene, corner)
-                projection = projection_matrix(camera_params, homography)
-                scene = render(scene, obj, scale_factor_model,
-                               projection, column_descriptor.get_marker_size(), False)
-
-            if homography_alg.matches is not None and draw_matches:
-                scene = cv2.drawMatches(column_descriptor.marker,
-                                        kp_marker,
-                                        scene,
-                                        kp_scene,
-                                        homography_alg.matches,
-                                        0, flags=2)
+        if len(marker_corners) > 0:
+            counter_filter.init(marker_corners)
+        elif len(marker_corners) == 0 and prev_corners is not None:
+            marker_corners = counter_filter.get()
+        
+        prev_corners = marker_corners
+        if len(marker_corners) > 0:
+            scene = cv2.aruco.drawDetectedMarkers(scene.copy(), marker_corners, marker_ids)
+            rvecs, tvecs, _ = cv2.aruco.estimatePoseSingleMarkers(marker_corners, 0.045 , 
+                                                                    camera_params.camera_mtx, 
+                                                                    camera_params.distortion_vec)
+            for idx in range(len(rvecs)):
+                scene = cv2.aruco.drawAxis(scene, 
+                                        camera_params.camera_mtx, 
+                                        camera_params.distortion_vec,
+                                        rvecs[idx], 
+                                        tvecs[idx], 
+                                        0.03)
         viewer.image(scene, channels='BGR')
     cap.release()
 
