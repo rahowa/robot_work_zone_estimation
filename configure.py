@@ -1,25 +1,19 @@
-from collections import Counter
-from dataclasses import make_dataclass
 import os
 import sys
 import json
-from typing import Dict, Any, Tuple
+from typing import Dict, Any, Optional, Tuple
 
 import cv2
 import numpy as np
+from nptyping import Array
 import streamlit as st
 from streamlit import sidebar as sb
 import multiprocessing as mp
 
 sys.path.append('./src')
 from src.obj_loader import OBJ
-from src.homography import ComputeHomography
-from src.feat_extractor import MakeDescriptor
-from src.utills import (projection_matrix, render,
-                        draw_corner, compute_corner, CounterFilter,
-                        mask_from_contours)
-from src.find_squares import SquareFinder
-from src.calibrate_camera import save_camera_params, load_camera_params
+from src.utills import (CounterFilter)
+from src.calibrate_camera import CameraParams, save_camera_params, load_camera_params, calibrate_camera
 
 
 def save_config(config_name: str, params: Dict[str, Any]) -> None:
@@ -29,7 +23,6 @@ def save_config(config_name: str, params: Dict[str, Any]) -> None:
 
 @st.cache(allow_output_mutation=True)
 def get_cap() -> cv2.VideoCapture:
-    # return cv2.VideoCapture("home_test.mp4")
     capture =  cv2.VideoCapture(0)
     return capture
 
@@ -96,7 +89,7 @@ def get_detector_params() -> Tuple[float, int, int]:
     return scale_factor_feat_det, max_num_of_features, num_of_levels
 
 
-def preprocess_image(img):
+def preprocess_image(img: Array[np.uint8]) -> Array[np.uint8]:
     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     kernel = cv2.getGaussianKernel(5, 0)
     img = cv2.filter2D(img, cv2.CV_8U, kernel)
@@ -113,21 +106,21 @@ def main() -> None:
     scale_factor_feat_det, max_num_of_features, num_of_levels = get_detector_params()
     scale_factor_model = get_model_params()
     board_height, board_width, path_to_images, path_to_camera_params = get_calibration_params()
-
+    
+    camera_params: Optional[CameraParams] = None
     if os.path.isfile(path_to_camera_params):
         camera_params = load_camera_params(path_to_camera_params)
     else:
         st.warning("Estimate camera params!")
         st.warning("Press 'Calibrate camera' button")
-        camera_params = None
 
     if sb.button("Calibrate camera"):
         st.write("Start camera calibration process")
-        camera_params = calibrate_camera_mp(path_to_images, 
-                                            frame_height,
-                                            frame_width,
-                                            board_height,
-                                            board_width)
+        camera_params = calibrate_camera(path_to_images, 
+                                         frame_height,
+                                         frame_width,
+                                         board_height,
+                                         board_width)
         save_camera_params(camera_params, path_to_camera_params)
         # process.join()
         st.write("Camera was calibarted")
@@ -172,26 +165,31 @@ def main() -> None:
             break
 
         gray_scene = cv2.cvtColor(scene.copy(), cv2.COLOR_BGR2GRAY)
-        marker_corners, marker_ids, _ = cv2.aruco.detectMarkers(gray_scene, dictionary, parameters=parameters)
-        
+        marker_corners, marker_ids, _ = cv2.aruco.detectMarkers(gray_scene,
+                                                                dictionary, 
+                                                                parameters=parameters,
+                                                                cameraMatrix=camera_params.camera_mtx, 
+                                                                distCoeff=camera_params.distortion_vec)
         if len(marker_corners) > 0:
             counter_filter.init(marker_corners)
         elif len(marker_corners) == 0 and prev_corners is not None:
             marker_corners = counter_filter.get()
         
-        prev_corners = marker_corners
+        # prev_corners = marker_corners
         if len(marker_corners) > 0:
             scene = cv2.aruco.drawDetectedMarkers(scene.copy(), marker_corners, marker_ids)
             rvecs, tvecs, _ = cv2.aruco.estimatePoseSingleMarkers(marker_corners, 0.045 , 
-                                                                    camera_params.camera_mtx, 
-                                                                    camera_params.distortion_vec)
+                                                                  camera_params.camera_mtx, 
+                                                                  camera_params.distortion_vec)
             for idx in range(len(rvecs)):
                 scene = cv2.aruco.drawAxis(scene, 
-                                        camera_params.camera_mtx, 
-                                        camera_params.distortion_vec,
-                                        rvecs[idx], 
-                                        tvecs[idx], 
-                                        0.03)
+                                           camera_params.camera_mtx, 
+                                           camera_params.distortion_vec,
+                                           rvecs[idx], 
+                                           tvecs[idx], 
+                                           0.03)
+
+        
         viewer.image(scene, channels='BGR')
     cap.release()
 
