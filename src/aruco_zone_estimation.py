@@ -26,25 +26,24 @@ class ArucoZoneEstimator:
         self.marker_world_size = marker_world_size
         self.marker_size = marker_size
         self.camera_params = camera_params
-
+        self.dictionary = cv2.aruco.Dictionary_get(marker_size)
+        self.parameters = cv2.aruco.DetectorParameters_create()
+        self.counter_filter = CounterFilter(10)
 
     def estimate(self, 
                  scene: Array[np.uint8], 
                  renderer: Optional[RenderZone]) -> Array[np.uint8]:
-        dictionary = cv2.aruco.Dictionary_get(self.marker_size)
-        parameters =  cv2.aruco.DetectorParameters_create()
-        counter_filter = CounterFilter(10)
         gray_scene = cv2.cvtColor(scene, cv2.COLOR_BGR2GRAY)
         marker_corners, marker_ids, _ = cv2.aruco.detectMarkers(gray_scene,
-                                                                dictionary, 
-                                                                parameters=parameters,
+                                                                self.dictionary, 
+                                                                parameters=self.parameters,
                                                                 cameraMatrix=self.camera_params.camera_mtx, 
                                                                 distCoeff=self.camera_params.distortion_vec)
         if len(marker_corners) > 0:
-            counter_filter.init(marker_corners)
+            self.counter_filter.init(marker_corners)
         else:
-            marker_corners = counter_filter.get()
-        
+            marker_corners = self.counter_filter.get()
+            
         if len(marker_corners) > 0:
             scene = cv2.aruco.drawDetectedMarkers(scene, marker_corners, marker_ids)
             rvecs, tvecs, _ = cv2.aruco.estimatePoseSingleMarkers(marker_corners, 
