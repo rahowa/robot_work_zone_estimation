@@ -2,7 +2,7 @@
 from multiprocessing.queues import Queue
 import os
 import json
-from typing import Tuple
+from typing import Any, Dict, Tuple
 from glob import glob
 from nptyping import Array
 from dataclasses import dataclass
@@ -33,6 +33,13 @@ class CameraParams:
     distortion_vec: Array[float]
     rotation_vec: Array[float]
     translation_vec: Array[float]
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {"camera_mtx": self.camera_mtx.tolist(),
+                "distortion_vec": self.distortion_vec.tolist(),
+                "rotation_vec": self.rotation_vec.tolist(),
+                "translation_vec": self.translation_vec.tolist()
+                }
 
 
 def collect_calibration_images(num_pictures: int,
@@ -109,14 +116,8 @@ def print_camera_params(camera_params: CameraParams) -> None:
 
 
 def save_camera_params(params: CameraParams, path: str) -> None:
-    params_dict = {
-        "camera_mtx": params.camera_mtx.tolist(),
-        "distortion_vec": params.distortion_vec.tolist(),
-        "rotation_vec": params.rotation_vec.tolist(),
-        "translation_vec": params.translation_vec.tolist()
-    }
     with open(path, 'w') as save_file:
-        json.dump(params_dict, save_file)
+        json.dump(params.to_dict(), save_file)
 
 
 def load_camera_params(path: str) -> CameraParams:
