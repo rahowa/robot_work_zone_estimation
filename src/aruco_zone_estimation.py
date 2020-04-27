@@ -16,7 +16,7 @@ ARUCO_MARKER_SIZE = frozendict({
     "4x4": cv2.aruco.DICT_4X4_100,
     "5x5": cv2.aruco.DICT_5X5_100,
     "6x6": cv2.aruco.DICT_6X6_100,
-    "7x7": cv2.aruco.DICT_7X7_100,
+    "7X7": cv2.aruco.DICT_7X7_100,
 })
 
 
