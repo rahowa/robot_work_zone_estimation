@@ -1,12 +1,12 @@
 import math
-from typing import Tuple
+from typing import Tuple, Union
 from dataclasses import dataclass
 
 
 @dataclass
 class Point:
-    x: int
-    y: int
+    x: Union[int, float]
+    y: Union[int, float]
 
     def to_tuple(self) -> Tuple[int, int]:
         return self.x, self.y
