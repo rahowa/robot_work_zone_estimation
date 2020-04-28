@@ -67,10 +67,14 @@ class ArucoZoneEstimator:
             dst_points = marker_corners[0]
             homography, _ = cv2.findHomography(src_points, dst_points, cv2.RANSAC, maxIters=5000)
             if homography is not None:
-                return compute_corner((self.zone.height, self.zone.width), homography).tolist()
+                corner = compute_corner((self.zone.height, self.zone.width), homography).tolist()
+                return [(point[0][0] + self.zone.cx, point[0][1] + self.zone.cy)
+                        for point in corner]
             else:
                 corner = self.zone.to_polygon()
-                return [(point.x, point.y) for point in corner]
+                return [(point.x + self.zone.cx, point.y + self.zone.cy)
+                        for point in corner]
         else:
             corner = self.zone.to_polygon()
-            return [(point.x, point.y) for point in corner]
+            return [(point.x + self.zone.cx, point.y + self.zone.cy)
+                    for point in corner]
