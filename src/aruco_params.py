@@ -100,6 +100,10 @@ def main_aruco() -> None:
         marker_size=marker_size,
         marker_world_size=marker_world_size,
         scale_factor_model=scale_factor_model,
+        wz_cx=wz_cx,
+        wz_cy=wz_cy,
+        wz_height=wz_height,
+        wz_width=wz_width,
         camera_params=camera_params.to_dict() if camera_params is not None else {}
     )
 
