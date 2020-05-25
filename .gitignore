@@ -105,6 +105,8 @@ venv.bak/
 
 
 *.jpg
+*.png
 *.vscode
 
-/src/data
+/data
+
