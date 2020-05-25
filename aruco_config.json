@@ -1,9 +1,10 @@
 {
     "frame_width": 640,
     "frame_height": 480,
-    "marker_size": "7X7",
+    "marker_size": "7x7",
     "marker_world_size": 0.05,
     "scale_factor_model": 10.0,
+    "marker_idx": 23,
     "wz_cx": 0,
     "wz_cy": 0,
     "wz_height": 14,
