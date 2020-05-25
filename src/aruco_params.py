@@ -8,7 +8,6 @@ from streamlit import sidebar as sb
 
 sys.path.append('./src')
 from src.obj_loader import OBJ
-from src.render import RenderZone
 from src.calibrate_camera import (CameraParams, save_camera_params,
                                   load_camera_params, calibrate_camera)
 from src.aruco_zone_estimation import ArucoZoneEstimator, ARUCO_MARKER_SIZE
@@ -38,15 +37,22 @@ def get_workzone_params() -> Tuple[int, int, int, int]:
     return wz_center_x, wz_center_y, wz_height, wz_width
 
 
-def get_aruco_marker_params() -> Tuple[str, float]:
+def get_aruco_marker_params() -> Tuple[str, int, float]:
     sb.markdown("Params of marker")
     marker_size = sb.selectbox("Chose aruco marker size",
-                               ("4x4", "5x5", "6x6", "7X7"))
+                               ("7x7", "6x6", "5x5", "4x4"))
+    marker_idx = sb.number_input("Select marker index", 
+                                 min_value=0,
+                                 max_value=250,
+                                 value=23)
+    dictionary = cv2.aruco.Dictionary_get(ARUCO_MARKER_SIZE[marker_size])
+    marker_image = cv2.aruco.drawMarker(dictionary, marker_idx, 75, 1)
+    sb.image(marker_image)
     marker_world_size = sb.number_input("Lenght of real world marker",
                                         min_value=0.0,
                                         max_value=100.0,
                                         value=0.05)
-    return marker_size, marker_world_size
+    return marker_size, marker_idx, marker_world_size
 
 
 def get_detector_params() -> Tuple[float, int, int]:
@@ -62,12 +68,12 @@ def main_aruco() -> None:
     st.title("Configure params for worzkone")
     sb.markdown("Params of rendering")
     frame_width, frame_height = get_camera_params()
-    marker_size, marker_world_size = get_aruco_marker_params()
+    marker_size, marker_idx, marker_world_size = get_aruco_marker_params()
     scale_factor_model = get_model_params()
     wz_cx, wz_cy, wz_height, wz_width = get_workzone_params()
 
     camera_params: Optional[CameraParams] = None
-    show_calibration_params = sb.checkbox("Camera calibration")
+    show_calibration_params = sb.checkbox("Camera calibration", value=False)
     if show_calibration_params:
         board_height, board_width, path_to_images, path_to_camera_params = get_calibration_params()
         if os.path.isfile(path_to_camera_params):
@@ -100,6 +106,7 @@ def main_aruco() -> None:
         marker_size=marker_size,
         marker_world_size=marker_world_size,
         scale_factor_model=scale_factor_model,
+        marker_idx=marker_idx,
         wz_cx=wz_cx,
         wz_cy=wz_cy,
         wz_height=wz_height,
@@ -120,10 +127,11 @@ def main_aruco() -> None:
         st.write('Exit configure')
         cap.release()
         exit(0)
-
+        
     zone = Workzone(wz_cx, wz_cy, wz_height, wz_width)
     estimator = ArucoZoneEstimator(marker_world_size,
                                    ARUCO_MARKER_SIZE[marker_size],
+                                   marker_idx,
                                    camera_params,
                                    zone)
     while True:
