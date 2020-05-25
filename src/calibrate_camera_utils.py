@@ -4,14 +4,10 @@ from typing import Any, Dict, Tuple
 from glob import glob
 from nptyping import Array
 from dataclasses import dataclass
-from argparse import ArgumentParser, Namespace
 
 import cv2
 import numpy as np
 from tqdm import tqdm
-
-CAM_WIDTH = 640
-CAM_HEIGHT = 480
 
 
 @dataclass
@@ -127,21 +123,19 @@ def load_camera_params(path: str) -> CameraParams:
                         np.array(params['translation_vec'], dtype=np.float))
 
 
-def undistort_frame(frame: Array[int, CAM_WIDTH, CAM_HEIGHT],
-                    params: CameraParams) -> Array[int, CAM_WIDTH, CAM_HEIGHT]:
+def undistort_frame(frame: Array[int], params: CameraParams) -> Array[int]:
     h,  w = frame.shape[:2]
-    newcameramtx, _ = cv2.getOptimalNewCameraMatrix(params.camera_mtx,
+    new_camera_mtx, _ = cv2.getOptimalNewCameraMatrix(params.camera_mtx,
                                                       params.distortion_vec,
-                                                      (w,h), 1, (w,h))
-    return cv2.undistort(frame, params.camera_mtx, params.distortion_vec, None, newcameramtx)
+                                                      (w, h), 1, (w, h))
+    return cv2.undistort(frame, params.camera_mtx, params.distortion_vec, None, new_camera_mtx)
     
 
-
 def calibrate_camera(path_to_images: str,
-                    frame_height: int,
-                    frame_width: int, 
-                    board_height: int, 
-                    board_width: int) -> CameraParams:
+                     frame_height: int,
+                     frame_width: int,
+                     board_height: int,
+                     board_width: int) -> CameraParams:
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 300, 0.0005)
     calibration_params = CalibrationParams(frame_height,
                                            frame_width,
@@ -155,28 +149,3 @@ def calibrate_camera(path_to_images: str,
     return all_camera_params
 
 
-def main_calibration(args: Namespace) -> None:
-    criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
-    calibration_params = CalibrationParams(CAM_HEIGHT,
-                                           CAM_WIDTH,
-                                           args.h,
-                                           args.w,
-                                           criteria,
-                                           (CAM_HEIGHT, CAM_WIDTH),
-                                           (args.h, args.w))
-    if args.tp:
-        collect_calibration_images(args.n, args.path, calibration_params)
-    camera_params = find_camera_params(args.path, calibration_params)
-    print_camera_params(camera_params)
-
-
-if __name__ == "__main__":
-    parser = ArgumentParser()
-    parser.add_argument("--tp", action="store_true")
-    parser.add_argument("--path", default='./data/calibration', type=str)
-    parser.add_argument("--n", default=20, type=int)
-    parser.add_argument("--w", default=6, type=int)
-    parser.add_argument("--h", default=9, type=int)
-    args = parser.parse_args()
-
-    main_calibration(args)
