@@ -1,0 +1,7 @@
+frozendict
+nptyping
+numpy
+tqdm
+streamlit
+opencv-python
+opencv-contrib-python
