@@ -9,8 +9,8 @@ from streamlit import sidebar as sb
 
 sys.path.append('./src')
 from src.obj_loader import OBJ
-from src.calibrate_camera import (CameraParams, save_camera_params,
-                                  load_camera_params, calibrate_camera)
+from src.calibrate_camera_utils import (CameraParams, save_camera_params,
+                                        load_camera_params, calibrate_camera)
 from src.aruco_zone_estimation import ArucoZoneEstimator, ARUCO_MARKER_SIZE
 from src.common_params import (save_config, get_cap, get_camera_params,
                                get_calibration_params, get_model_params)

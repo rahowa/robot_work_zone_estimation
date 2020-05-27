@@ -9,7 +9,7 @@ from frozendict import frozendict
 sys.path.append('./src')
 from src.counter_filter import CounterFilter
 from src.utills import compute_corner
-from src.calibrate_camera import CameraParams
+from src.calibrate_camera_utils import CameraParams
 from src.workzone import Workzone
 
 
@@ -28,12 +28,11 @@ class ArucoZoneEstimator:
                  marker_id: int,
                  camera_params: Optional[CameraParams],
                  zone: Workzone) -> None:
+        print("INITED AGAIN")
         self.marker_world_size = marker_world_size
         self.marker_size = marker_size
         self.marker_id = marker_id
         self.camera_params = camera_params
-        self.dictionary = cv2.aruco.Dictionary_get(marker_size)
-        self.parameters = cv2.aruco.DetectorParameters_create()
         self.counter_filter = CounterFilter(10)
         self.zone = zone
 
@@ -42,12 +41,11 @@ class ArucoZoneEstimator:
         camera_matrix = self.camera_params.camera_mtx if self.camera_params is not None else None
         dist_coeffs =  self.camera_params.distortion_vec if self.camera_params is not None else None
         marker_corners, marker_ids, _ = cv2.aruco.detectMarkers(gray_scene,
-                                                                self.dictionary,
-                                                                parameters=self.parameters,
+                                                                cv2.aruco.Dictionary_get(self.marker_size),
+                                                                parameters=cv2.aruco.DetectorParameters_create(),
                                                                 cameraMatrix=camera_matrix,
                                                                 distCoeff=dist_coeffs)
 
-        print(self.marker_id, marker_ids)
         if (marker_ids is None) or (not self.marker_id in marker_ids):
             corner = self.zone.to_polygon()
             return [(int(point.x + self.zone.cx), int(point.y + self.zone.cy))
@@ -63,16 +61,16 @@ class ArucoZoneEstimator:
 
             if camera_matrix is not None and dist_coeffs is not None:
                 rvecs, tvecs, _ = cv2.aruco.estimatePoseSingleMarkers(marker_corners,
-                                                                    self.marker_world_size,
-                                                                    camera_matrix,
-                                                                    dist_coeffs)
+                                                                      self.marker_world_size,
+                                                                      camera_matrix,
+                                                                      dist_coeffs)
                 for idx in range(len(rvecs)):
                     scene = cv2.aruco.drawAxis(scene,
-                                            camera_matrix,
-                                            dist_coeffs,
-                                            rvecs[idx],
-                                            tvecs[idx],
-                                            0.03)
+                                               camera_matrix,
+                                               dist_coeffs,
+                                               rvecs[idx],
+                                               tvecs[idx],
+                                               0.03)
             src_points = np.array([[0, 0],
                                    [self.marker_size, 0],
                                    [self.marker_size, self.marker_size],
